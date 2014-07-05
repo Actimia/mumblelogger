@@ -26,7 +26,8 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 
 public class MumbleLogger {
     // a rudimentary url pattern
-    private static final Pattern p = Pattern.compile("<a href=\"(https?://[\\S]*)\"");
+    private static final Pattern atags = Pattern.compile("<a href=\"(https?://[\\S]*)\"");
+    private static final Pattern imgtags = Pattern.compile("<img src=\"(.*)\"/>");
 
     // the database connection
     private static Connection conn;
@@ -38,6 +39,7 @@ public class MumbleLogger {
     private static final HttpClient http = HttpClientBuilder.create()
         .setConnectionManager(new PoolingHttpClientConnectionManager())
         .build();
+
     private static final JsonParser jsonparser = new JsonParser();
 
     public static void main(String[] args) {
@@ -69,17 +71,27 @@ public class MumbleLogger {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         br.lines()              
             .filter(s -> s.startsWith("tdflog:"))   // only interested in our messages
+            //.peek(System.out::println) // for debug
             .flatMap(MumbleLogger::extractUrls)     // transform to a stream of URLs            
-            //.parallel()                             // parallel since we will be doing net ops
             .flatMap(MumbleLogger::toImgur)         // check for domain etc, and rehost as necessary
             .forEach(MumbleLogger::storeUrl);       // store the urls to the database
 
     }
 
     private static Stream<URL> extractUrls(String input) {
-        Matcher m = p.matcher(input);
+        // find all img tags with base64 encoded data
+        Matcher imgs = imgtags.matcher(input);
+        ArrayList<URL> matches = new ArrayList<>(); 
+        while(imgs.find()){
+            URL url = uploadBase64(imgs.group(1));
+            if(url != null){
+                matches.add(url);
+            }
+        }
 
-        ArrayList<URL> matches = new ArrayList<>();
+        // find all links
+        Matcher m = atags.matcher(input);
+        
         while (m.find()) {
             try {
                 matches.add(new URL(m.group(1))); // group 0 is the whole expr
@@ -88,6 +100,44 @@ public class MumbleLogger {
             }
         }
         return matches.stream();
+    }
+
+    private static URL uploadBase64(String b64){
+        try {
+            b64 = b64.substring(b64.indexOf(",")); // strip initial data
+            b64 = b64.replace("%2B", "+");
+            b64 = b64.replace("%2F", "/");
+            b64 = b64.replace(" ", "\n");
+            System.out.println("Uploading from b64: " + b64.length() + " bytes");
+
+            HttpPost req = new HttpPost("https://api.imgur.com/3/image");
+
+            // add auth header
+            req.addHeader("Authorization", "Client-ID " + CLIENT_ID);
+
+            // add the image path to the request
+            List<NameValuePair> nvps = new ArrayList<>();
+            nvps.add(new BasicNameValuePair("image", b64));
+            nvps.add(new BasicNameValuePair("type", "base64"));
+            req.setEntity(new UrlEncodedFormEntity(nvps, Charset.forName("UTF-8")));
+
+            HttpResponse res = http.execute(req);
+            if(res.getStatusLine().getStatusCode() == 200){
+                // get the response, extract the image link               
+                String json = EntityUtils.toString(res.getEntity());
+                JsonObject root = jsonparser.parse(json).getAsJsonObject();
+                JsonObject image = root.get("data").getAsJsonObject();
+                String link = image.get("link").getAsString();
+                return new URL(link);
+            } else {
+                // something went wrong
+                System.out.print("Non-200 statuscode from b64 upload: " + res.getStatusLine().toString());
+                return null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private static void storeUrl(URL url) {
@@ -126,7 +176,6 @@ public class MumbleLogger {
                     // get all the image urls
                     ArrayList<URL> urls = new ArrayList<>();
                     for(int i = 0; i < images.size(); i++){
-                        System.out.println(i);
                         JsonObject image = images.get(i).getAsJsonObject();
                         String link = image.get("link").getAsString();
                         urls.add(new URL(link));          
