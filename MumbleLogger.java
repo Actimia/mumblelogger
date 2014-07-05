@@ -8,13 +8,19 @@ import java.util.regex.*;
 import java.sql.*;
 
 public class MumbleLogger {
+    // a rudimentary url pattern
     private static final Pattern p = Pattern.compile("<a href=\"(https?://[\\S]*)\"");
 
+    // the database connection
     private static Connection conn;
 
+    // the imgur auth token
     private static final String CLIENT_ID = "b8cdd34d59c9b9f";
 
-    private static final ThreadPool pool = Executors.newCachedThreadPool();
+    // client to use for api requests
+    private static final HttpClient http = new HttpClientBuilder()
+        .setConnectionManager(new MultiThreadedHttpConnectionManager())
+        .build();
 
     public static void main(String[] args) {
         try {
@@ -64,12 +70,6 @@ public class MumbleLogger {
         return matches.stream();
     }
 
-    private static boolean isImageUrl(URL url) {
-        return url.getPath().endsWith(".jpg")
-            || url.getPath().endsWith(".png")
-            || url.getPath().endsWith(".gif");
-    }
-
     private static void storeUrl(URL url) {
         System.out.println("This is a stored url: " + url);
         try {
@@ -86,7 +86,13 @@ public class MumbleLogger {
             return Stream.of(url);
         } else if (url.getHost().equals("imgur.com") && url.getPath().startsWith("/a/")) {
             // album case, fetch urls of all the images in the album and add them separately
-
+            String albumToken = url.getPath().substring(3)); // discard the /a/
+            HttpGet req = new HttpGet("https://api.imgur.com/3/gallery/album/" + albumToken);
+            req.addHeader("Authorization", "Client-ID " + CLIENT_ID);
+            HttpResponse res = http.execute(req);
+            if(res.getStatusLine().getStatusCode() == 200){
+                String json = EntityUtils.toString(res.getEntity());
+            }
         } else if (isImageUrl(url)) {
             // image hosted elsewhere on the web, rehost to imgur
 
@@ -94,5 +100,11 @@ public class MumbleLogger {
             // not recognised as an image
             return Stream.empty();
         }
+    }
+
+    private static boolean isImageUrl(URL url) {
+        return url.getPath().endsWith(".jpg")
+            || url.getPath().endsWith(".png")
+            || url.getPath().endsWith(".gif");
     }
 }
