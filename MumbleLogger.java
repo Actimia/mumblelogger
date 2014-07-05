@@ -64,12 +64,13 @@ public class MumbleLogger {
             System.exit(-1);
         }
 
+        System.out.println("Listening...");
         // the big operation
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        br.lines().parallel()                       // parallel since we will be doing net ops
+        br.lines()              
             .filter(s -> s.startsWith("tdflog:"))   // only interested in our messages
-            .flatMap(MumbleLogger::extractUrls)     // transform to a stream of URLs
-            .peek(System.out::println)              // print all URLs
+            .flatMap(MumbleLogger::extractUrls)     // transform to a stream of URLs            
+            //.parallel()                             // parallel since we will be doing net ops
             .flatMap(MumbleLogger::toImgur)         // check for domain etc, and rehost as necessary
             .forEach(MumbleLogger::storeUrl);       // store the urls to the database
 
@@ -107,7 +108,7 @@ public class MumbleLogger {
         } else if (url.getHost().equals("imgur.com") && url.getPath().startsWith("/a/")) {
             // album case, fetch urls of all the images in the album and add them separately
             String albumToken = url.getPath().substring(3); // discard the /a/
-            HttpGet req = new HttpGet("https://api.imgur.com/3/gallery/album/" + albumToken);
+            HttpGet req = new HttpGet("https://api.imgur.com/3/album/" + albumToken);
 
             // add auth header
             req.addHeader("Authorization", "Client-ID " + CLIENT_ID);
@@ -119,11 +120,13 @@ public class MumbleLogger {
                    
                     String json = EntityUtils.toString(res.getEntity());
                     JsonObject root = jsonparser.parse(json).getAsJsonObject();
-                    JsonArray images = root.getAsJsonArray("images");
+                    JsonObject data = root.get("data").getAsJsonObject();
+                    JsonArray images = data.getAsJsonArray("images");
 
                     // get all the image urls
                     ArrayList<URL> urls = new ArrayList<>();
                     for(int i = 0; i < images.size(); i++){
+                        System.out.println(i);
                         JsonObject image = images.get(i).getAsJsonObject();
                         String link = image.get("link").getAsString();
                         urls.add(new URL(link));          
@@ -131,7 +134,7 @@ public class MumbleLogger {
                     return urls.stream();
                 } else {
                     // something went wrong
-                    System.out.println("Non-200 statuscode from album info fetch: " + res.getStatusLine().toString());
+                    System.out.print("Non-200 statuscode from album info fetch: " + res.getStatusLine().toString());
                     return Stream.empty();
                 }
             } catch (Exception e) {
