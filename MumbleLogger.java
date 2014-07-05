@@ -9,7 +9,7 @@ import java.net.URL;
 
 import java.sql.*;
 
-import com.google.gson.JsonParser;
+import com.google.gson.*
 
 import org.apache.http.*;
 
@@ -58,7 +58,7 @@ public class MumbleLogger {
         br.lines().parallel()                       // parallel since we will be doing net ops
             .filter(s -> s.startsWith("tdflog:"))   // only interested in our messages
             .flatMap(MumbleLogger::extractUrls)     // transform to a stream of URLs
-            .peek(System.out::println)
+            .peek(System.out::println)              // print all URLs
             .flatMap(MumbleLogger::toImgur)         // check for domain etc, and rehost as necessary
             .forEach(MumbleLogger::storeUrl);       // store the urls to the database
 
