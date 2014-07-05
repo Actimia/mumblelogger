@@ -1,5 +1,0 @@
-tdflog:https://www.facebook.com/
-tdflog:asdf
-tdflog:hnng
-tdflog:http://www.google.se
-tdflog:test
