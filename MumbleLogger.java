@@ -69,10 +69,10 @@ public class MumbleLogger {
         System.out.println("Listening...");
         // the big operation
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        br.lines()              
+        br.lines()
             .filter(s -> s.startsWith("tdflog:"))   // only interested in our messages
             //.peek(System.out::println) // for debug
-            .flatMap(MumbleLogger::extractUrls)     // transform to a stream of URLs            
+            .flatMap(MumbleLogger::extractUrls)     // transform to a stream of URLs
             .flatMap(MumbleLogger::toImgur)         // check for domain etc, and rehost as necessary
             .forEach(MumbleLogger::storeUrl);       // store the urls to the database
 
@@ -81,7 +81,7 @@ public class MumbleLogger {
     private static Stream<URL> extractUrls(String input) {
         // find all img tags with base64 encoded data
         Matcher imgs = imgtags.matcher(input);
-        ArrayList<URL> matches = new ArrayList<>(); 
+        ArrayList<URL> matches = new ArrayList<>();
         while(imgs.find()){
             URL url = uploadBase64(imgs.group(1));
             if(url != null){
@@ -91,7 +91,7 @@ public class MumbleLogger {
 
         // find all links
         Matcher m = atags.matcher(input);
-        
+
         while (m.find()) {
             try {
                 matches.add(new URL(m.group(1))); // group 0 is the whole expr
@@ -123,7 +123,7 @@ public class MumbleLogger {
 
             HttpResponse res = http.execute(req);
             if(res.getStatusLine().getStatusCode() == 200){
-                // get the response, extract the image link               
+                // get the response, extract the image link
                 String json = EntityUtils.toString(res.getEntity());
                 JsonObject root = jsonparser.parse(json).getAsJsonObject();
                 JsonObject image = root.get("data").getAsJsonObject();
@@ -167,7 +167,7 @@ public class MumbleLogger {
                 HttpResponse res = http.execute(req);
                 if(res.getStatusLine().getStatusCode() == 200){
                     // get the response, extract the image array
-                   
+
                     String json = EntityUtils.toString(res.getEntity());
                     JsonObject root = jsonparser.parse(json).getAsJsonObject();
                     JsonObject data = root.get("data").getAsJsonObject();
@@ -178,7 +178,7 @@ public class MumbleLogger {
                     for(int i = 0; i < images.size(); i++){
                         JsonObject image = images.get(i).getAsJsonObject();
                         String link = image.get("link").getAsString();
-                        urls.add(new URL(link));          
+                        urls.add(new URL(link));
                     }
                     return urls.stream();
                 } else {
@@ -190,8 +190,8 @@ public class MumbleLogger {
                 e.printStackTrace();
                 return Stream.empty();
             }
-                
-            
+
+
         } else if (isImageUrl(url)) {
             // image hosted elsewhere on the web, rehost to imgur
             try {
@@ -202,6 +202,8 @@ public class MumbleLogger {
                 // add the image path to the request
                 List<NameValuePair> nvps = new ArrayList<>();
                 nvps.add(new BasicNameValuePair("image", url.toString()));
+                nvps.add(new BasicNameValuePair("type", "URL"));
+                nvps.add(new BasicNameValuePair("description", "Image from " + url.getHost()));
                 req.setEntity(new UrlEncodedFormEntity(nvps, Charset.forName("UTF-8")));
 
                 System.out.println("Uploading image from: " + url.getHost());
@@ -221,7 +223,7 @@ public class MumbleLogger {
             } catch (Exception e) {
                 e.printStackTrace();
                 return Stream.empty();
-            }  
+            }
         } else {
             // not recognised as an image
             return Stream.empty();

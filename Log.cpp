@@ -435,7 +435,8 @@ QString Log::validHtml(const QString &html, bool allowReplacement, QTextCursor *
 void Log::log(MsgType mt, const QString &console, const QString &terse, bool ownMessage) {
 	QDateTime dt = QDateTime::currentDateTime();
 
-	std::cout << "tdflog:" << console.toUtf8().constData() << std::endl;
+	QString output(console); // copy since we are replacing
+	std::cout << "tdflog:" << output.replace(QString("\n"), QString("\ntdflog:").toUtf8().constData() << std::endl;
 
 	int ignore = qmIgnore.value(mt);
 	if (ignore) {
@@ -521,11 +522,6 @@ void Log::log(MsgType mt, const QString &console, const QString &terse, bool own
 	while ((pos = identifyURL.indexIn(plain, pos)) != -1) {
 		QUrl url(identifyURL.cap(0).toLower());
 		int len = identifyURL.matchedLength();
-
-
-		// Print all valid URLs for further processing
-		std::cout << "URL:" << url.toString().toUtf8().constData() << std::endl;
-		
 
 		if (url.isValid() && qslAllowed.contains(url.scheme())) {
 			// Replace it appropriatly
