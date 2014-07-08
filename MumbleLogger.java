@@ -45,11 +45,12 @@ public class MumbleLogger {
     public static void main(String[] args) {
         try {
             // setup database
-            Class.forName("org.sqlite.JDBC");
-            conn = DriverManager.getConnection("jdbc:sqlite:urls.db");
+            Class.forName("com.mysql.jdbc.Driver");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost/feedback?"
+              + "user=mumblelogger&password=tdfpro");
 
             // setup table
-            PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (time text, url text);");
+            PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (int id, time text, url text) PRIMARY KEY (id);");
             createTable.execute();
 
             // add proper shutdown behavior
