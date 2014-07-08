@@ -46,8 +46,8 @@ public class MumbleLogger {
         try {
             // setup database
             Class.forName("com.mysql.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost/feedback?"
-              + "user=mumblelogger&password=tdfpro");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost/mumblelogger?"
+              + "user=mumblelogger&password=lanmunnas");
 
             // setup table
             PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (int id, time text, url text) PRIMARY KEY (id);");
