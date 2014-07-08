@@ -50,7 +50,10 @@ public class MumbleLogger {
               + "user=mumblelogger&password=lanmunnas");
 
             // setup table
-            PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (int id, time text, url text) PRIMARY KEY (id);");
+            PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (
+                id INT(11) PRIMARY KEY AUTO_INCREMENT, 
+                time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+                url VARCHAR(255));");
             createTable.execute();
 
             // add proper shutdown behavior
@@ -144,7 +147,7 @@ public class MumbleLogger {
     private static void storeUrl(URL url) {
         System.out.println("Stored url: " + url);
         try {
-            PreparedStatement insert = conn.prepareStatement("INSERT INTO urls VALUES (datetime('now'), ?);");
+            PreparedStatement insert = conn.prepareStatement("INSERT INTO urls(url) VALUES (?);");
             insert.setString(1, url.toString());
             insert.execute();
         } catch (SQLException e) {
