@@ -1,2 +1,3 @@
 *.class
 *.db
+/public_html/nbproject/private/
