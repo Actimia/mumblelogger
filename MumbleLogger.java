@@ -50,10 +50,7 @@ public class MumbleLogger {
               + "user=mumblelogger&password=lanmunnas");
 
             // setup table
-            PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (
-                id INT(11) PRIMARY KEY AUTO_INCREMENT, 
-                time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-                url VARCHAR(255));");
+            PreparedStatement createTable = conn.prepareStatement("CREATE TABLE IF NOT EXISTS urls (id INT(11) PRIMARY KEY AUTO_INCREMENT, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, url VARCHAR(255));");
             createTable.execute();
 
             // add proper shutdown behavior
